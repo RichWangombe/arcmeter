@@ -1,0 +1,42 @@
+{
+  "name": "@arcmeter/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./x402/headers": {
+      "types": "./dist/x402/headers.d.ts",
+      "import": "./dist/x402/headers.js"
+    },
+    "./x402/terms": {
+      "types": "./dist/x402/terms.d.ts",
+      "import": "./dist/x402/terms.js"
+    },
+    "./x402/proof": {
+      "types": "./dist/x402/proof.d.ts",
+      "import": "./dist/x402/proof.js"
+    },
+    "./x402/receipt": {
+      "types": "./dist/x402/receipt.d.ts",
+      "import": "./dist/x402/receipt.js"
+    }
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "lint": "node -e \"process.exit(0)\"",
+    "test": "node -e \"process.exit(0)\"",
+    "test:roundtrip": "tsx src/x402/__tests__/roundtrip.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  }
+}

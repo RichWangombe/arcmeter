@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use Node.js 20.x with pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@9
+
+      - name: Install deps
+        run: pnpm i --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r build
+
+      - name: Lint & unit tests
+        run: |
+          pnpm lint
+          pnpm test
+          pnpm test:roundtrip
+
+      - name: Start facilitator (background)
+        run: |
+          pnpm --filter services/facilitator exec tsx src/index.ts &
+          echo $! > facilitator.pid
+        working-directory: services/facilitator
+
+      - name: Wait for facilitator up
+        run: |
+          for i in {1..20}; do
+            curl -sf http://localhost:3002/health && exit 0
+            sleep 1
+          done
+          echo "Facilitator failed to start" && exit 1
+
+      - name: Start minimal seller (background)
+        run: |
+          pnpm --filter ../../examples/express-seller exec tsx index.ts &
+          echo $! > seller.pid
+        working-directory: examples/express-seller
+
+      - name: Wait for seller up
+        run: |
+          for i in {1..20}; do
+            curl -sf http://localhost:4000/protected || true
+            status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/protected)
+            if [ "$status" = "402" ]; then exit 0; fi
+            sleep 1
+          done
+          echo "Seller failed to start" && exit 1
+
+      - name: Run agent client and assert 200
+        run: |
+          output=$(pnpm --filter ../../examples/agent-client exec tsx index.ts | tee /dev/stdout)
+          echo "$output" | grep -q "Success! Resource body" || (echo "Agent did not succeed" && exit 1)
+        working-directory: examples/agent-client
+
+      - name: Assert receipts exist
+        run: |
+          count=$(curl -sf http://localhost:4000/receipts | jq '.receipts | length')
+          if [ "$count" -lt 1 ]; then echo "No receipts" && exit 1; fi
+
+      - name: Cleanup background services
+        if: always()
+        run: |
+          kill $(cat services/facilitator/facilitator.pid) || true
+          kill $(cat examples/express-seller/seller.pid) || true
