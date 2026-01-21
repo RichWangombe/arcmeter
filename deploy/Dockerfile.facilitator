@@ -1,0 +1,26 @@
+FROM node:20-alpine AS build
+WORKDIR /repo
+
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY services/facilitator ./services/facilitator
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @arcmeter/shared build
+RUN pnpm --filter @arcmeter/facilitator build
+RUN pnpm prune --prod
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=build /repo/node_modules ./node_modules
+COPY --from=build /repo/packages ./packages
+COPY --from=build /repo/services/facilitator/node_modules ./services/facilitator/node_modules
+COPY --from=build /repo/services/facilitator/dist ./services/facilitator/dist
+COPY --from=build /repo/services/facilitator/package.json ./services/facilitator/package.json
+
+WORKDIR /app/services/facilitator
+CMD ["node", "dist/index.js"]

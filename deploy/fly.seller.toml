@@ -1,0 +1,25 @@
+app = "arcmeter-seller"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile.seller"
+  context = ".."
+
+[env]
+  SELLER_PORT = "8080"
+  SELLER_DB_PATH = "/data/seller.json"
+  SELLER_DEFAULT_PRICE_USD = "0.01"
+  SELLER_PRICE_RAISE_MODE = "false"
+  SELLER_CLIENT_ID_HEADER = "X-CLIENT-ID"
+  FACILITATOR_BASE_URL = "https://arcmeter-facilitator.fly.dev"
+
+[mounts]
+  source = "seller_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0

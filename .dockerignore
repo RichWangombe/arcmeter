@@ -1,0 +1,15 @@
+.git
+.github
+.next
+.turbo
+.env
+.env.*
+**/node_modules
+**/dist
+**/.pnpm-store
+**/.cache
+**/.local
+**/coverage
+**/data
+**/tmp
+**/.DS_Store

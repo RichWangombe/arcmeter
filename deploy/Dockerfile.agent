@@ -1,0 +1,26 @@
+FROM node:20-alpine AS build
+WORKDIR /repo
+
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY services/agent-buyer ./services/agent-buyer
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @arcmeter/shared build
+RUN pnpm --filter @arcmeter/agent-buyer build
+RUN pnpm prune --prod
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=build /repo/node_modules ./node_modules
+COPY --from=build /repo/packages ./packages
+COPY --from=build /repo/services/agent-buyer/node_modules ./services/agent-buyer/node_modules
+COPY --from=build /repo/services/agent-buyer/dist ./services/agent-buyer/dist
+COPY --from=build /repo/services/agent-buyer/package.json ./services/agent-buyer/package.json
+
+WORKDIR /app/services/agent-buyer
+CMD ["node", "dist/index.js"]

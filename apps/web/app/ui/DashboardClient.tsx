@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type SellerHealth = { ok: boolean; priceRaiseMode: boolean; envDefault: boolean };
-type FacilitatorHealth = { ok: boolean };
+type FacilitatorHealth = { ok: boolean; mode?: "local_demo" | "upstream" | string };
 type AgentHealth = { ok: boolean };
 
 type ReceiptRow = {
@@ -50,11 +50,36 @@ export default function DashboardClient() {
 
   const healthText = useMemo(() => {
     const bits = [];
-    bits.push(`seller=${sellerHealth?.ok ? "ok" : sellerHealth ? "down" : "…"}`);
-    bits.push(`facilitator=${facilitatorHealth?.ok ? "ok" : facilitatorHealth ? "down" : "…"}`);
-    bits.push(`agent=${agentHealth?.ok ? "ok" : agentHealth ? "down" : "…"}`);
+    bits.push(`seller-${sellerHealth?.ok ? "ok" : sellerHealth ? "down" : "..."}`);
+    bits.push(`facilitator-${facilitatorHealth?.ok ? "ok" : facilitatorHealth ? "down" : "..."}`);
+    bits.push(`agent-${agentHealth?.ok ? "ok" : agentHealth ? "down" : "..."}`);
     return bits.join(" | ");
   }, [sellerHealth, facilitatorHealth, agentHealth]);
+
+  const healthTone = useMemo(() => {
+    const statuses = [sellerHealth, facilitatorHealth, agentHealth];
+    const allOk = statuses.every((status) => status?.ok);
+    const anyDown = statuses.some((status) => status && !status.ok);
+    if (allOk) return "ok";
+    if (anyDown) return "down";
+    return "unknown";
+  }, [sellerHealth, facilitatorHealth, agentHealth]);
+
+  const modeLabel = useMemo(() => {
+    const mode = facilitatorHealth?.mode;
+    if (mode === "upstream") return "MODE: Circle Gateway";
+    return "MODE: Local Demo (x402)";
+  }, [facilitatorHealth]);
+
+  const runOutputText = runOutput
+    ? JSON.stringify(runOutput, null, 2)
+    : "No run yet - click Run to begin.";
+  const selectedRunText = selectedRun
+    ? JSON.stringify(selectedRun, null, 2)
+    : "No run selected - choose a run to view details.";
+  const receiptsText = receipts.length
+    ? JSON.stringify(receipts.slice(0, 25), null, 2)
+    : "No receipts yet - run the agent to generate one.";
 
   async function refreshHealth() {
     const [s, f, a] = await Promise.all([
@@ -144,9 +169,10 @@ export default function DashboardClient() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
           <div>
             <h1 style={{ margin: 0 }}>ArcMeter Dashboard</h1>
-            <div className="small">{healthText}</div>
+            <div className={`small status ${healthTone}`}>{healthText}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span className="badge">{modeLabel}</span>
             <a className="small" href="/about">
               About
             </a>
@@ -166,7 +192,7 @@ export default function DashboardClient() {
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Seller Controls</h2>
           <div className="small" style={{ marginBottom: 12 }}>
-            Price raise mode is currently: <b>{priceRaiseMode === null ? "…" : priceRaiseMode ? "ENABLED" : "disabled"}</b>
+            Price raise mode is currently: <b>{priceRaiseMode === null ? "checking..." : priceRaiseMode ? "ENABLED" : "disabled"}</b>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button disabled={busy} onClick={() => setPriceMode(false)}>
@@ -179,7 +205,10 @@ export default function DashboardClient() {
         </div>
 
         <div className="card">
-          <h2 style={{ marginTop: 0 }}>Run Agent Buyer</h2>
+          <h2 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <span>Run Agent Buyer</span>
+            <span className="hint" title="Flow: Request -> 402 -> Pay -> Retry -> Receipt">x402 flow</span>
+          </h2>
           <div className="small" style={{ marginBottom: 10 }}>
             Calls agent-buyer `/run`, which triggers a real `/signal` paywall flow.
           </div>
@@ -219,7 +248,7 @@ export default function DashboardClient() {
             Select a run to view its event log and result.
           </div>
           <div style={{ display: "grid", gap: 8 }}>
-            {runs.length === 0 ? <div className="small">No runs yet.</div> : null}
+            {runs.length === 0 ? <div className="small">No runs yet - click Run to begin.</div> : null}
             {runs.slice(0, 10).map((r) => (
               <button
                 key={r.runId}
@@ -239,7 +268,7 @@ export default function DashboardClient() {
           <div className="small" style={{ marginBottom: 10 }}>
             Most recent `/run` response.
           </div>
-          <pre style={{ maxHeight: 340 }}>{JSON.stringify(runOutput, null, 2)}</pre>
+          <pre style={{ maxHeight: 340 }}>{runOutputText}</pre>
         </div>
       </div>
 
@@ -249,7 +278,7 @@ export default function DashboardClient() {
           <div className="small" style={{ marginBottom: 10 }}>
             GET `/runs/:runId`
           </div>
-          <pre style={{ maxHeight: 420 }}>{JSON.stringify(selectedRun, null, 2)}</pre>
+          <pre style={{ maxHeight: 420 }}>{selectedRunText}</pre>
         </div>
 
         <div className="card">
@@ -257,7 +286,7 @@ export default function DashboardClient() {
           <div className="small" style={{ marginBottom: 10 }}>
             Seller receipts from `/admin/receipts`.
           </div>
-          <pre style={{ maxHeight: 420 }}>{JSON.stringify(receipts.slice(0, 25), null, 2)}</pre>
+          <pre style={{ maxHeight: 420 }}>{receiptsText}</pre>
         </div>
       </div>
     </main>

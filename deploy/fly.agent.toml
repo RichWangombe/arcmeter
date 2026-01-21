@@ -1,0 +1,19 @@
+app = "arcmeter-agent"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile.agent"
+  context = ".."
+
+[env]
+  AGENT_PORT = "8080"
+  SELLER_BASE_URL = "https://arcmeter-seller.fly.dev"
+  AGENT_PAYER = "demo_agent"
+  AGENT_MAX_DAILY_SPEND_USD = "2.00"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0

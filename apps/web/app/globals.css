@@ -79,3 +79,38 @@ pre {
   opacity: 0.8;
   font-size: 12px;
 }
+
+.status {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status.ok {
+  color: #8ee6a8;
+}
+
+.status.down {
+  color: #ff9a9a;
+}
+
+.status.unknown {
+  color: #a8b3cf;
+}
+
+.badge {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hint {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0.85;
+}
